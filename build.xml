@@ -1,0 +1,88 @@
+<project name="BuildAnt" default="run" basedir=".">
+
+    <description>ESA8 - Buildmanagementsysteme - Apache Ant</description>
+    <property name="dir.source" location="src"/>
+    <property name="dir.source.main" location="${dir.source}/org/munzinger"/>
+    <property name="dir.source.test" location="${dir.source}/test/org/munzinger"/>
+    <property name="dir.build" location="build"/>
+    <property name="dir.build.main" location="${dir.build}/main"/>
+    <property name="dir.build.test" location="${dir.build}/test"/>
+    <property name="dir.distribution" location="dist"/>
+    <property name="dir.documentation" location="doc"/>
+
+    <fail message="Ant 1.10.12 oder neuer wird benötigt!">
+        <condition>
+            <not>
+                <antversion atleast="1.10.12"/>
+            </not>
+        </condition>
+    </fail>
+
+    <path id="test.classpath">
+        <pathelement path="${dir.build}/test"/>
+        <pathelement path="${dir.build}/main"/>
+        <fileset dir="${ant.home}/lib" includes="*.jar" />
+    </path>
+
+    <target name="clean">
+        <delete dir="${dir.build}"/>
+        <delete dir="${dir.distribution}"/>
+        <delete dir="${dir.documentation}"/>
+    </target>
+
+    <target name="init" depends="clean">
+        <mkdir dir="${dir.build}"/>
+        <mkdir dir="${dir.build.main}"/>
+        <mkdir dir="${dir.build.test}"/>
+        <mkdir dir="${dir.distribution}"/>
+        <mkdir dir="${dir.documentation}"/>
+    </target>
+
+    <target name="get" depends="init">
+        <get dest="${ant.home}/lib/junit-platform-console-standalone-1.10.13.jar" src="https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.9.3/junit-platform-console-standalone-1.9.3.jar"/>
+    </target>
+
+    <target name="compile" depends="get">
+        <javac destdir="build/main" srcdir="${dir.source.main}" includeantruntime="false"/>
+        <javac destdir="build/test" classpathref="test.classpath" srcdir="${dir.source.test}" includeantruntime="false"/>
+    </target>
+
+    <target name="test" depends="compile">
+        <java classpathref="test.classpath" classname="org.junit.platform.console.ConsoleLauncher" fork="true" failonerror="true">
+            <arg value="--scan-classpath"/>
+            <arg line="--reports-dir ${dir.build}/test-report"/>
+        </java>
+        <junitreport todir="${dir.build}/test-report">
+            <fileset dir="${dir.build}/test-report">
+                <include name="report-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${dir.build}/test-report/html"/>
+        </junitreport>
+    </target>
+
+    <target name="doc">
+        <javadoc
+                defaultexcludes="yes"
+                use="yes"
+                header="ESA8 - Buildmanagementsysteme - Apache Ant"
+                doctitle="Buildmanagementsysteme - Apache Ant"
+                nodeprecatedlist="yes"
+                sourcepath="${dir.source}"
+                destdir="${dir.documentation}"
+                packagenames="org.munzinger"
+        />
+    </target>
+
+    <target name="jar" depends="compile, test">
+        <jar destfile="${dir.distribution}\calculator.jar" basedir="${dir.build.main}">
+            <manifest>
+                <attribute name="Main-Class" value="org.munzinger.Calculator"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="run" depends="jar">
+        <java jar="${dir.distribution}\calculator.jar" fork="true"/>
+    </target>
+
+</project>
